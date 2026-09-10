@@ -1,0 +1,11 @@
+{
+  "name": "RouteCost road trip planner",
+  "short_name": "RouteCost",
+  "start_url": "/routecost/",
+  "scope": "/routecost/",
+  "display": "standalone",
+  "background_color": "#fbfcfb",
+  "theme_color": "#167454",
+  "description": "A private, browser-only road trip budget planner.",
+  "icons": [{ "src": "/routecost/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
