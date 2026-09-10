@@ -33,6 +33,13 @@ test.describe('RouteCost planner', () => {
     await expect(page).toHaveURL(/#share=/);
   });
 
+  test('exports a CSV with the trip total', async ({ page }) => {
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download CSV' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('routecost-trip-plan.csv');
+  });
+
   test('has no detectable accessibility violations on the main view', async ({ page }) => {
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);

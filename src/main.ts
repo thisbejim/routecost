@@ -438,7 +438,7 @@ function downloadCsv(): void {
   anchor.href = url;
   anchor.download = 'routecost-trip-plan.csv';
   anchor.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
   setStatus('CSV downloaded.');
 }
 
@@ -460,11 +460,19 @@ function decodeShare(value: string): unknown | null {
   }
 }
 
+function copyText(value: string, successMessage: string, failureMessage: string): void {
+  if (!navigator.clipboard) {
+    setStatus(failureMessage);
+    return;
+  }
+  void navigator.clipboard.writeText(value).then(() => setStatus(successMessage)).catch(() => setStatus(failureMessage));
+}
+
 function sharePlan(): void {
   const encoded = encodeShare({ version: 1, plan: state });
   const url = `${BASE_URL}#${SHARE_PREFIX}${encoded}`;
   window.history.replaceState(null, '', `#${SHARE_PREFIX}${encoded}`);
-  void navigator.clipboard?.writeText(url).then(() => setStatus('Share link copied. It contains only the values you chose to share.')).catch(() => setStatus('Share link ready in the address bar.'));
+  copyText(url, 'Share link copied. It contains only the values you chose to share.', 'Share link ready in the address bar.');
 }
 
 function handleAction(button: HTMLElement): void {
@@ -520,7 +528,7 @@ function handleAction(button: HTMLElement): void {
     return;
   }
   if (action === 'copy') {
-    void navigator.clipboard?.writeText(summaryText(calculatePlan(state))).then(() => setStatus('Summary copied.')).catch(() => setStatus('Copy was blocked; select the text in the result instead.'));
+    copyText(summaryText(calculatePlan(state)), 'Summary copied.', 'Copy was blocked; select the text in the result instead.');
     return;
   }
   if (action === 'download') {
