@@ -461,7 +461,14 @@ function decodeShare(value: string): unknown | null {
     const padded = value.replaceAll('-', '+').replaceAll('_', '/') + '='.repeat((4 - (value.length % 4)) % 4);
     const binary = atob(padded);
     const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    return JSON.parse(new TextDecoder().decode(bytes));
+    let decodedText = '';
+    try {
+      decodedText = new TextDecoder().decode(bytes);
+    } catch {
+      const encoded = Array.from(bytes, (byte) => `%${byte.toString(16).padStart(2, '0')}`).join('');
+      decodedText = decodeURIComponent(encoded);
+    }
+    return JSON.parse(decodedText);
   } catch {
     return null;
   }
