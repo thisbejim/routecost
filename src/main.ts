@@ -96,7 +96,10 @@ function loadState(): void {
     if (hash.startsWith(SHARE_PREFIX)) {
       const decoded = decodeShare(hash.slice(SHARE_PREFIX.length));
       if (decoded) {
-        state = safePlan(decoded);
+        const sharedPlan = decoded && typeof decoded === 'object' && 'plan' in decoded
+          ? (decoded as { plan: unknown }).plan
+          : decoded;
+        state = safePlan(sharedPlan);
         isExample = false;
         nextLegId = state.legs.reduce((max, leg) => {
           const match = /leg-(\d+)/.exec(leg.id);
@@ -174,7 +177,11 @@ function input(
     options.max !== undefined ? `max="${options.max}"` : '',
     options.placeholder ? `placeholder="${escapeHtml(options.placeholder)}"` : '',
   ].filter(Boolean).join(' ');
-  const renderedValue = type === 'number' && Number(value) === 0 && options.placeholder ? '' : escapeHtml(String(value));
+  const stepDecimals = options.step?.includes('.') ? options.step.split('.')[1].length : 0;
+  const renderedNumber = Number(value).toFixed(stepDecimals);
+  const renderedValue = type === 'number' && Number(value) === 0 && options.placeholder
+    ? ''
+    : escapeHtml(type === 'number' && Number.isFinite(Number(value)) ? renderedNumber : String(value));
   return `<label class="field"><span>${escapeHtml(label)}</span><input ${attrs} value="${renderedValue}">${options.help ? `<small>${escapeHtml(options.help)}</small>` : ''}</label>`;
 }
 
@@ -218,7 +225,7 @@ function renderForm(): void {
         ${state.legs.map((leg, index) => `<div class="leg-row">
           <div class="leg-index" aria-hidden="true">${index + 1}</div>
           <label class="field leg-name"><span>Leg name</span><input type="text" data-field="leg:${escapeHtml(leg.id)}.name" value="${escapeHtml(leg.name)}" maxlength="80" placeholder="e.g. Home → coast"></label>
-          <label class="field leg-distance"><span>One-way distance (${distanceLabel()})</span><input type="number" data-field="leg:${escapeHtml(leg.id)}.distance" value="${leg.distance || ''}" min="0" step="0.1" inputmode="decimal" placeholder="350"><small>Use a map estimate or odometer distance.</small></label>
+          <label class="field leg-distance"><span>One-way distance (${distanceLabel()})</span><input type="number" data-field="leg:${escapeHtml(leg.id)}.distance" value="${leg.distance ? leg.distance.toFixed(1) : ''}" min="0" step="0.1" inputmode="decimal" placeholder="350"><small>Use a map estimate or odometer distance.</small></label>
           ${state.legs.length > 1 ? `<button class="icon-button" type="button" data-action="remove-leg" data-leg-id="${escapeHtml(leg.id)}" aria-label="Remove ${escapeHtml(leg.name || `leg ${index + 1}`)}">×</button>` : ''}
         </div>`).join('')}
       </div>

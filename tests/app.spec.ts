@@ -26,11 +26,16 @@ test.describe('RouteCost planner', () => {
   });
 
   test('supports imperial conversion and share-link state', async ({ page }) => {
+    await page.locator('input[data-field="leg:leg-1.distance"]').fill('500');
     await page.getByRole('button', { name: /US \/ imperial/ }).click();
-    await expect(page.locator('input[data-field="leg:leg-1.distance"]')).toHaveValue(/217/);
+    await expect(page.locator('input[data-field="leg:leg-1.distance"]')).toHaveValue('310.7');
     await expect(page.locator('.inline-note')).toContainText('mi one way');
     await page.getByRole('button', { name: 'Copy share link' }).click();
     await expect(page).toHaveURL(/#share=/);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await expect(page.locator('input[data-field="leg:leg-1.distance"]')).toHaveValue('310.7');
+    await expect(page.getByRole('button', { name: /US \/ imperial/ })).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('exports a CSV with the trip total', async ({ page }) => {
