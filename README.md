@@ -65,7 +65,7 @@ npm run build
 npm run test:e2e
 ```
 
-The app is configured for the `/routecost/` GitHub Pages base path. Deployment is defined in [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml).
+The app is configured for the `/routecost/` GitHub Pages base path. The published `gh-pages` branch contains the Vite `dist` output; rebuild it with `npm run build` before updating that branch.
 
 ## License
 
