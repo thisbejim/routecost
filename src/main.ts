@@ -449,26 +449,73 @@ function downloadCsv(): void {
   setStatus('CSV downloaded.');
 }
 
+const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+function utf8Encode(value: string): Uint8Array {
+  if (typeof TextEncoder === 'function') return new TextEncoder().encode(value);
+  const encoded = encodeURIComponent(value);
+  const bytes: number[] = [];
+  for (let index = 0; index < encoded.length; index += 1) {
+    if (encoded[index] === '%') {
+      bytes.push(Number.parseInt(encoded.slice(index + 1, index + 3), 16));
+      index += 2;
+    } else {
+      bytes.push(encoded.charCodeAt(index));
+    }
+  }
+  return Uint8Array.from(bytes);
+}
+
+function utf8Decode(bytes: Uint8Array): string {
+  try {
+    if (typeof TextDecoder === 'function') return new TextDecoder().decode(bytes);
+  } catch {
+    // Fall through to a standards-based URI decoder for older webviews.
+  }
+  const encoded = Array.from(bytes, (byte) => `%${byte.toString(16).padStart(2, '0')}`).join('');
+  return decodeURIComponent(encoded);
+}
+
+function base64Encode(bytes: Uint8Array): string {
+  let result = '';
+  for (let index = 0; index < bytes.length; index += 3) {
+    const first = bytes[index];
+    const second = bytes[index + 1];
+    const third = bytes[index + 2];
+    result += BASE64_CHARS[first >> 2];
+    result += BASE64_CHARS[((first & 3) << 4) | (second === undefined ? 0 : second >> 4)];
+    result += second === undefined ? '=' : BASE64_CHARS[((second & 15) << 2) | (third === undefined ? 0 : third >> 6)];
+    result += third === undefined ? '=' : BASE64_CHARS[third & 63];
+  }
+  return result;
+}
+
+function base64Decode(value: string): Uint8Array {
+  const bytes: number[] = [];
+  let buffer = 0;
+  let bits = 0;
+  for (const character of value) {
+    if (character === '=') break;
+    const digit = BASE64_CHARS.indexOf(character);
+    if (digit < 0) throw new Error('Invalid share link encoding');
+    buffer = (buffer << 6) | digit;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((buffer >> bits) & 255);
+    }
+  }
+  return Uint8Array.from(bytes);
+}
+
 function encodeShare(value: unknown): string {
-  const bytes = new TextEncoder().encode(JSON.stringify(value));
-  let binary = '';
-  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
-  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+  return base64Encode(utf8Encode(JSON.stringify(value))).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 }
 
 function decodeShare(value: string): unknown | null {
   try {
     const padded = value.replaceAll('-', '+').replaceAll('_', '/') + '='.repeat((4 - (value.length % 4)) % 4);
-    const binary = atob(padded);
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    let decodedText = '';
-    try {
-      decodedText = new TextDecoder().decode(bytes);
-    } catch {
-      const encoded = Array.from(bytes, (byte) => `%${byte.toString(16).padStart(2, '0')}`).join('');
-      decodedText = decodeURIComponent(encoded);
-    }
-    return JSON.parse(decodedText);
+    return JSON.parse(utf8Decode(base64Decode(padded)));
   } catch {
     return null;
   }
