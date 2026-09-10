@@ -503,6 +503,7 @@ function base64Decode(value: string): Uint8Array {
     if (bits >= 8) {
       bits -= 8;
       bytes.push((buffer >> bits) & 255);
+      buffer &= bits ? (1 << bits) - 1 : 0;
     }
   }
   return Uint8Array.from(bytes);
